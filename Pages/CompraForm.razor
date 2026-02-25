@@ -1,0 +1,241 @@
+@page "/compra/nova"
+@using GraGasJM.Models
+@using GraGasJM.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Nova Compra</PageTitle>
+
+<h1>Nova Compra</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="@compra" OnValidSubmit="@SalvarCompra">
+            <DataAnnotationsValidator />
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Informações da Compra</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dataCompra" class="form-label">Data</label>
+                            <InputDate id="dataCompra" class="form-control" @bind-Value="compra.DataCompra" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="formaPagamento" class="form-label">Forma de Pagamento</label>
+                            <InputSelect id="formaPagamento" class="form-control" @bind-Value="compra.FormaPagamento">
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Cartão de Débito">Cartão de Débito</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Boleto">Boleto</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nomeFornecedor" class="form-label">Nome do Fornecedor (opcional)</label>
+                        <InputText id="nomeFornecedor" class="form-control" @bind-Value="compra.NomeFornecedor" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <InputTextArea id="observacoes" class="form-control" @bind-Value="compra.Observacoes" rows="2" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Itens da Compra</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="produtoSelecionado" class="form-label">Produto</label>
+                            <select id="produtoSelecionado" class="form-control" @bind="produtoSelecionadoId">
+                                <option value="0">Selecione um produto...</option>
+                                @foreach (var prod in produtos)
+                                {
+                                    <option value="@prod.Id">@prod.Nome</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="quantidade" class="form-label">Quantidade</label>
+                            <input type="number" id="quantidade" class="form-control" @bind="quantidadeItem" min="1" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="preco" class="form-label">Preço Unit.</label>
+                            <input type="number" id="preco" class="form-control" @bind="precoItem" min="0" step="0.01" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-success w-100" @onclick="AdicionarItem">
+                                <span class="oi oi-plus"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (mensagemErro != null)
+                    {
+                        <div class="alert alert-danger">@mensagemErro</div>
+                    }
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Preço Unit.</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in itens)
+                            {
+                                <tr>
+                                    <td>@item.Produto?.Nome</td>
+                                    <td>@item.Quantidade</td>
+                                    <td>@item.PrecoUnitario.ToString("C")</td>
+                                    <td>@item.Subtotal.ToString("C")</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoverItem(item)">
+                                            <span class="oi oi-trash"></span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Total:</th>
+                                <th>@CalcularTotal().ToString("C")</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary" disabled="@(itens.Count == 0)">Finalizar Compra</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Compra compra = new();
+    private List<ItemCompra> itens = new();
+    private List<Produto> produtos = new();
+    private int produtoSelecionadoId = 0;
+    private int quantidadeItem = 1;
+    private decimal precoItem = 0;
+    private string? mensagemErro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        produtos = await DbContext.Produtos
+            .Where(p => p.Ativo)
+            .OrderBy(p => p.Nome)
+            .ToListAsync();
+    }
+
+    private void AdicionarItem()
+    {
+        mensagemErro = null;
+
+        if (produtoSelecionadoId == 0)
+        {
+            mensagemErro = "Selecione um produto";
+            return;
+        }
+
+        if (quantidadeItem <= 0)
+        {
+            mensagemErro = "A quantidade deve ser maior que zero";
+            return;
+        }
+
+        if (precoItem <= 0)
+        {
+            mensagemErro = "O preço deve ser maior que zero";
+            return;
+        }
+
+        var produto = produtos.FirstOrDefault(p => p.Id == produtoSelecionadoId);
+        if (produto == null)
+        {
+            mensagemErro = "Produto não encontrado";
+            return;
+        }
+
+        var itemExistente = itens.FirstOrDefault(i => i.ProdutoId == produtoSelecionadoId);
+        if (itemExistente != null)
+        {
+            itemExistente.Quantidade += quantidadeItem;
+            itemExistente.PrecoUnitario = precoItem;
+        }
+        else
+        {
+            itens.Add(new ItemCompra
+                {
+                    ProdutoId = produto.Id,
+                    Produto = produto,
+                    Quantidade = quantidadeItem,
+                    PrecoUnitario = precoItem
+                });
+        }
+
+        produtoSelecionadoId = 0;
+        quantidadeItem = 1;
+        precoItem = 0;
+    }
+
+    private void RemoverItem(ItemCompra item)
+    {
+        itens.Remove(item);
+    }
+
+    private decimal CalcularTotal()
+    {
+        return itens.Sum(i => i.Subtotal);
+    }
+
+    private async Task SalvarCompra()
+    {
+        if (itens.Count == 0)
+        {
+            mensagemErro = "Adicione pelo menos um item à compra";
+            return;
+        }
+
+        compra.ValorTotal = CalcularTotal();
+        compra.Itens = itens;
+
+        // Atualizar estoque
+        foreach (var item in itens)
+        {
+            var produto = await DbContext.Produtos.FindAsync(item.ProdutoId);
+            if (produto != null)
+            {
+                produto.QuantidadeEstoque += item.Quantidade;
+            }
+        }
+
+        DbContext.Compras.Add(compra);
+        await DbContext.SaveChangesAsync();
+        Navigation.NavigateTo("/compras");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/compras");
+    }
+}

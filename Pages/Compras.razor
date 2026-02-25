@@ -1,0 +1,109 @@
+@page "/compras"
+@using GraGasJM.Models
+@using GraGasJM.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Compras</PageTitle>
+
+<h1>Gerenciamento de Compras</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="NovaCompra">
+        <span class="oi oi-plus"></span> Nova Compra
+    </button>
+</div>
+
+@if (compras == null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Fornecedor</th>
+                <th>Valor Total</th>
+                <th>Forma de Pagamento</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var compra in compras)
+            {
+                <tr>
+                    <td>@compra.DataCompra.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@(string.IsNullOrEmpty(compra.NomeFornecedor) ? "Fornecedor não informado" : compra.NomeFornecedor)</td>
+                    <td>@compra.ValorTotal.ToString("C")</td>
+                    <td>@compra.FormaPagamento</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" @onclick="() => VisualizarCompra(compra.Id)">
+                            <span class="oi oi-eye"></span>
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => ExcluirCompra(compra.Id)">
+                            <span class="oi oi-trash"></span>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (compras.Count == 0)
+    {
+        <div class="alert alert-info">Nenhuma compra registrada.</div>
+    }
+}
+
+@code {
+    private List<Compra>? compras;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarCompras();
+    }
+
+    private async Task CarregarCompras()
+    {
+        compras = await DbContext.Compras
+            .OrderByDescending(c => c.DataCompra)
+            .ToListAsync();
+    }
+
+    private void NovaCompra()
+    {
+        Navigation.NavigateTo("/compra/nova");
+    }
+
+    private void VisualizarCompra(int id)
+    {
+        Navigation.NavigateTo($"/compra/detalhes/{id}");
+    }
+
+    private async Task ExcluirCompra(int id)
+    {
+        var compra = await DbContext.Compras
+            .Include(c => c.Itens)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (compra != null)
+        {
+            // Remover produtos do estoque
+            foreach (var item in compra.Itens)
+            {
+                var produto = await DbContext.Produtos.FindAsync(item.ProdutoId);
+                if (produto != null)
+                {
+                    produto.QuantidadeEstoque -= item.Quantidade;
+                }
+            }
+
+            DbContext.Compras.Remove(compra);
+            await DbContext.SaveChangesAsync();
+            await CarregarCompras();
+        }
+    }
+}

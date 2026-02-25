@@ -1,0 +1,113 @@
+﻿@page "/"
+@using GraGasJM.Models
+@using GraGasJM.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+
+<PageTitle>GraGasJM - Dashboard</PageTitle>
+
+<h1>Sistema de Gerenciamento - GraGasJM</h1>
+
+<p>Bem-vindo ao sistema de gerenciamento da revenda!</p>
+
+@if (produtos == null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Produtos Cadastrados</div>
+                <div class="card-body">
+                    <h5 class="card-title">@produtos.Count</h5>
+                    <p class="card-text">Total de produtos no sistema</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Estoque Baixo</div>
+                <div class="card-body">
+                    <h5 class="card-title">@produtosEstoqueBaixo</h5>
+                    <p class="card-text">Produtos abaixo do estoque mínimo</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Valor Total em Estoque</div>
+                <div class="card-body">
+                    <h5 class="card-title">@valorTotalEstoque.ToString("C")</h5>
+                    <p class="card-text">Valor de venda do estoque atual</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (produtosEstoqueBaixo > 0)
+    {
+        <div class="alert alert-warning mt-3">
+            <h5>⚠️ Atenção: Produtos com estoque baixo!</h5>
+            <ul>
+                @foreach (var produto in produtos.Where(p => p.QuantidadeEstoque <= p.EstoqueMinimo))
+                {
+                    <li><strong>@produto.Nome</strong> - Estoque atual: @produto.QuantidadeEstoque (Mínimo: @produto.EstoqueMinimo)</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Resumo dos Produtos</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Estoque Atual</th>
+                        <th>Preço de Venda</th>
+                        <th>Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var produto in produtos)
+                    {
+                        <tr class="@(produto.QuantidadeEstoque <= produto.EstoqueMinimo ? "table-warning" : "")">
+                            <td>@produto.Nome</td>
+                            <td>@produto.QuantidadeEstoque</td>
+                            <td>@produto.PrecoVenda.ToString("C")</td>
+                            <td>@((produto.QuantidadeEstoque * produto.PrecoVenda).ToString("C"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Produto>? produtos;
+    private int produtosEstoqueBaixo = 0;
+    private decimal valorTotalEstoque = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        produtos = await DbContext.Produtos
+            .Where(p => p.Ativo)
+            .OrderBy(p => p.Nome)
+            .ToListAsync();
+
+        if (produtos != null)
+        {
+            produtosEstoqueBaixo = produtos.Count(p => p.QuantidadeEstoque <= p.EstoqueMinimo);
+            valorTotalEstoque = produtos.Sum(p => p.QuantidadeEstoque * p.PrecoVenda);
+        }
+    }
+}
+

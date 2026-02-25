@@ -1,0 +1,110 @@
+@page "/produtos"
+@using GraGasJM.Models
+@using GraGasJM.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Produtos</PageTitle>
+
+<h1>Gerenciamento de Produtos</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="NovoProduto">
+        <span class="oi oi-plus"></span> Novo Produto
+    </button>
+</div>
+
+@if (produtos == null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Preço Venda</th>
+                <th>Preço Compra</th>
+                <th>Estoque Atual</th>
+                <th>Estoque Mínimo</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var produto in produtos)
+            {
+                <tr class="@(produto.QuantidadeEstoque <= produto.EstoqueMinimo ? "table-warning" : "")">
+                    <td>@produto.Nome</td>
+                    <td>
+                        <span class="badge bg-secondary">@produto.Categoria</span>
+                    </td>
+                    <td>@produto.Descricao</td>
+                    <td>@produto.PrecoVenda.ToString("C")</td>
+                    <td>@produto.PrecoCompra.ToString("C")</td>
+                    <td>@produto.QuantidadeEstoque</td>
+                    <td>@produto.EstoqueMinimo</td>
+                    <td>
+                        @if (produto.Ativo)
+                        {
+                            <span class="badge bg-success">Ativo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inativo</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => EditarProduto(produto.Id)">
+                            <span class="oi oi-pencil"></span>
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => ExcluirProduto(produto.Id)">
+                            <span class="oi oi-trash"></span>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Produto>? produtos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarProdutos();
+    }
+
+    private async Task CarregarProdutos()
+    {
+        produtos = await DbContext.Produtos
+            .OrderBy(p => p.Nome)
+            .ToListAsync();
+    }
+
+    private void NovoProduto()
+    {
+        Navigation.NavigateTo("/produto/novo");
+    }
+
+    private void EditarProduto(int id)
+    {
+        Navigation.NavigateTo($"/produto/editar/{id}");
+    }
+
+    private async Task ExcluirProduto(int id)
+    {
+        var produto = await DbContext.Produtos.FindAsync(id);
+        if (produto != null)
+        {
+            DbContext.Produtos.Remove(produto);
+            await DbContext.SaveChangesAsync();
+            await CarregarProdutos();
+        }
+    }
+}
