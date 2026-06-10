@@ -1,0 +1,76 @@
+@page "/compra/detalhes/{Id:int}"
+@using GraGasJM.Application.Abstractions
+@using GraGasJM.Models
+@inject ICompraRepository CompraRepository
+@inject NavigationManager Navigation
+
+<PageTitle>Detalhes da Compra</PageTitle>
+
+<h1>Detalhes da Compra</h1>
+
+@if (compra == null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <p><strong>Data:</strong> @compra.DataCompra.ToString("dd/MM/yyyy HH:mm")</p>
+            <p><strong>Fornecedor:</strong> @(string.IsNullOrEmpty(compra.NomeFornecedor) ? "Fornecedor não informado" : compra.NomeFornecedor)</p>
+            <p><strong>Forma de pagamento:</strong> @compra.FormaPagamento</p>
+            <p><strong>Total:</strong> @compra.ValorTotal.ToString("C")</p>
+            <p><strong>Observações:</strong> @(string.IsNullOrEmpty(compra.Observacoes) ? "-" : compra.Observacoes)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Itens</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Quantidade</th>
+                        <th>Preço Unit.</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in compra.Itens)
+                    {
+                        <tr>
+                            <td>@(item.Produto?.Nome ?? "Produto não informado")</td>
+                            <td>@item.Quantidade</td>
+                            <td>@item.PrecoUnitario.ToString("C")</td>
+                            <td>@item.Subtotal.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button class="btn btn-secondary" @onclick="Voltar">Voltar</button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Compra? compra;
+
+    protected override async Task OnInitializedAsync()
+    {
+        compra = await CompraRepository.ObterPorIdComItensAsync(Id);
+    }
+
+    private void Voltar()
+    {
+        Navigation.NavigateTo("/compras");
+    }
+}

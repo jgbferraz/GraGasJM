@@ -66,7 +66,7 @@ GraGasJM/
 
 3. **Execute o projeto**
    ```bash
-   dotnet run
+   dotnet run --project GRAGAZBlazor/GraGasJM.csproj
    ```
 
 4. **Acesse no navegador**
