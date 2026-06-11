@@ -12,7 +12,7 @@ public class CriarVendaUseCaseTests
         var produto = new Produto
         {
             Id = 1,
-            Nome = "Botijão",
+            Nome = "Botijão de Gás P13",
             Ativo = true,
             QuantidadeEstoque = 10,
             PrecoVenda = 100m,

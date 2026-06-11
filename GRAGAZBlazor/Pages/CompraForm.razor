@@ -3,7 +3,7 @@
 @using GraGasJM.Application.Abstractions
 @using GraGasJM.Application.Compras
 @inject IProdutoRepository ProdutoRepository
-@inject ISalvarCompraUseCase SalvarCompraUseCase
+@inject ICriarCompraUseCase CriarCompraUseCase
 @inject NavigationManager Navigation
 
 <PageTitle>Nova Compra</PageTitle>
@@ -28,11 +28,9 @@
                         <div class="col-md-6 mb-3">
                             <label for="formaPagamento" class="form-label">Forma de Pagamento</label>
                             <InputSelect id="formaPagamento" class="form-control" @bind-Value="compra.FormaPagamento">
-                                <option value="Dinheiro">Dinheiro</option>
-                                <option value="Cartão de Débito">Cartão de Débito</option>
-                                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                <option value="PIX">PIX</option>
-                                <option value="Boleto">Boleto</option>
+                                <option value="@FormaPagamento.DinheiroPix">Dinheiro / PIX</option>
+                                <option value="@FormaPagamento.CartaoDebito">Cartão de Débito</option>
+                                <option value="@FormaPagamento.CartaoCredito">Cartão de Crédito</option>
                             </InputSelect>
                         </div>
                     </div>
@@ -214,13 +212,13 @@
             return;
         }
 
-        var resultado = await SalvarCompraUseCase.ExecutarAsync(new SalvarCompraCommand
+        var resultado = await CriarCompraUseCase.ExecutarAsync(new CriarCompraCommand
         {
             DataCompra = compra.DataCompra,
             NomeFornecedor = compra.NomeFornecedor,
             Observacoes = compra.Observacoes,
             FormaPagamento = compra.FormaPagamento,
-            Itens = itens.Select(i => new SalvarCompraItemCommand
+            Itens = itens.Select(i => new CriarCompraItemCommand
             {
                 ProdutoId = i.ProdutoId,
                 Quantidade = i.Quantidade,

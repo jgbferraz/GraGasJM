@@ -27,12 +27,12 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="formaPagamento" class="form-label">Forma de Pagamento</label>
-                            <InputSelect id="formaPagamento" class="form-control" @bind-Value="formaPagamento">
+                            <InputSelect id="formaPagamento" class="form-control" @bind-Value="venda.FormaPagamento">
                                 <option value="@FormaPagamento.DinheiroPix">Dinheiro / PIX</option>
                                 <option value="@FormaPagamento.CartaoDebito">Cartão de Débito</option>
                                 <option value="@FormaPagamento.CartaoCredito">Cartão de Crédito</option>
                             </InputSelect>
-                            @if (formaPagamento == FormaPagamento.DinheiroPix)
+                            @if (venda.FormaPagamento == FormaPagamento.DinheiroPix)
                             {
                                 <small class="text-success">Desconto de R$ 3,00 por botíjão P13</small>
                             }
@@ -100,10 +100,11 @@
                                 <tr>
                                     <td>@item.Produto?.Nome</td>
                                     <td>@item.Quantidade</td>
-                                    <td>@item.PrecoUnitario.ToString("C")</td>
-                                    <td>@item.Subtotal.ToString("C")</td>
+                                    <td>@ObterPrecoUnitarioExibicao(item).ToString("C")</td>
+                                    <td>@ObterSubtotal(item).ToString("C")</td>
                                     <td>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoverItem(item)">
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                                @onclick="() => RemoverItem(item)">
                                             <span class="oi oi-trash"></span>
                                         </button>
                                     </td>
@@ -131,12 +132,12 @@
 
 @code {
     private Venda venda = new();
-    private FormaPagamento formaPagamento = FormaPagamento.DinheiroPix;
     private List<ItemVenda> itens = new();
     private List<Produto> produtos = new();
     private int produtoSelecionadoId = 0;
     private int quantidadeItem = 1;
     private string? mensagemErro;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -180,12 +181,12 @@
         else
         {
             itens.Add(new ItemVenda
-                {
-                    ProdutoId = produto.Id,
-                    Produto = produto,
-                    Quantidade = quantidadeItem,
-                    PrecoUnitario = produto.PrecoVenda
-                });
+            {
+                ProdutoId = produto.Id,
+                Produto = produto,
+                Quantidade = quantidadeItem,
+                PrecoUnitario = produto.PrecoVenda
+            });
         }
 
         produtoSelecionadoId = 0;
@@ -197,10 +198,22 @@
         itens.Remove(item);
     }
 
-    private decimal CalcularTotal()
-    {
-        return itens.Sum(i => i.Subtotal);
-    }
+    private decimal ObterPrecoUnitarioExibicao(ItemVenda item) =>
+        VendaPricingPolicy.CalcularPrecoUnitario(
+            item.PrecoUnitario,
+            venda.FormaPagamento,
+            item.Produto?.Nome);
+
+    private decimal ObterSubtotal(ItemVenda item) =>
+        VendaPricingPolicy.CalcularSubtotal(
+            item.PrecoUnitario,
+            item.Quantidade,
+            venda.FormaPagamento,
+            item.Produto?.Nome);
+
+    private decimal CalcularTotal() =>
+        itens.Sum(i => ObterSubtotal(i));
+
 
     private async Task SalvarVenda()
     {
@@ -215,7 +228,7 @@
             DataVenda = venda.DataVenda,
             NomeCliente = venda.NomeCliente,
             Observacoes = venda.Observacoes,
-            FormaPagamento = formaPagamento,
+            FormaPagamento = venda.FormaPagamento,
             Itens = itens.Select(i => new CriarVendaItemCommand
             {
                 ProdutoId = i.ProdutoId,

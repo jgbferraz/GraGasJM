@@ -4,23 +4,23 @@ using GraGasJM.Models;
 
 namespace GraGasJM.Application.Compras;
 
-public class SalvarCompraUseCase : ISalvarCompraUseCase
+public class CriarCompraUseCase : ICriarCompraUseCase
 {
-    private readonly ICompraRepository _compraRepository;
     private readonly IProdutoRepository _produtoRepository;
+    private readonly ICompraRepository _compraRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public SalvarCompraUseCase(
-        ICompraRepository compraRepository,
+    public CriarCompraUseCase(
         IProdutoRepository produtoRepository,
+        ICompraRepository compraRepository,
         IUnitOfWork unitOfWork)
     {
-        _compraRepository = compraRepository;
         _produtoRepository = produtoRepository;
+        _compraRepository = compraRepository;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<OperationResult<int>> ExecutarAsync(SalvarCompraCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<int>> ExecutarAsync(CriarCompraCommand command, CancellationToken cancellationToken = default)
     {
         if (command.Itens.Count == 0)
         {

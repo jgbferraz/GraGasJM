@@ -60,11 +60,16 @@ public class CriarVendaUseCase : ICriarVendaUseCase
 
             produto.QuantidadeEstoque -= itemCommand.Quantidade;
 
+            var precoUnitario = VendaPricingPolicy.CalcularPrecoUnitario(
+                produto.PrecoVenda,
+                command.FormaPagamento,
+                produto.Nome);
+
             venda.Itens.Add(new ItemVenda
             {
                 ProdutoId = produto.Id,
                 Quantidade = itemCommand.Quantidade,
-                PrecoUnitario = produto.PrecoVenda
+                PrecoUnitario = precoUnitario
             });
         }
 

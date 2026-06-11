@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddScoped<IRemoverVendaUseCase, RemoverVendaUseCase>();
         services.AddScoped<ISalvarProdutoUseCase, SalvarProdutoUseCase>();
         services.AddScoped<IRemoverProdutoUseCase, RemoverProdutoUseCase>();
-        services.AddScoped<ISalvarCompraUseCase, SalvarCompraUseCase>();
+        services.AddScoped<ICriarCompraUseCase, CriarCompraUseCase>();
         services.AddScoped<IRemoverCompraUseCase, RemoverCompraUseCase>();
 
         return services;

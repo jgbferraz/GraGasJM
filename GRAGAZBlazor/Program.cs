@@ -2,8 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using GraGasJM.Application;
 using GraGasJM.Data;
 using GraGasJM.Infrastructure;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Use um caminho absoluto para evitar criar bancos diferentes por diretório de execução.
+var dbPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "gragas.db"));
+Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+builder.Configuration["ConnectionStrings:DefaultConnection"] = $"Data Source={dbPath}";
 
 // Add services to the container.
 builder.Services.AddRazorPages();
